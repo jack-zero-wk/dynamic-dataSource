@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	   xmlns:tx="http://www.springframework.org/schema/tx"
+	   xmlns:aop="http://www.springframework.org/schema/aop"
+	   xsi:schemaLocation="
+			http://www.springframework.org/schema/beans 
+			http://www.springframework.org/schema/beans/spring-beans-3.0.xsd 
+			http://www.springframework.org/schema/tx 
+			http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+			http://www.springframework.org/schema/aop 
+			http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+	">
+
+
+
+	<!-- 配置数据源 -->
+	<bean id="dynamicDataSource" class="com.ztkj.core.bean.DynamicDataSource" >
+		<property name="targetDataSources" >
+			<map></map>
+		</property>
+		<property name="defaultTargetDataSource" ref="ds" />
+	</bean>
+
+	<!-- 配置SqlSessionFactory -->
+	<bean id="sqlSessionFactory_dynamic" class="com.ztkj.core.handler.MySqlSessionFactoryBean">
+		<property name="dataSource" ref="dynamicDataSource" />
+		<!-- 指定扫描哪些路径下的配置文件 -->
+		<property name="mapperLocations" value="classpath:mapper2/*.xml"/>
+	</bean>
+
+	<!-- 事务管理器 -->
+	<bean id="txManager_dynamic"  class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dynamicDataSource" />
+	</bean>
+
+	<!-- DAO接口所在包名，Spring会自动查找其下的类 -->
+	<bean id="configurer_dynamic" class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="basePackage" value="com.ztkj.test.*.dao" />
+		<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory_dynamic"/>
+	</bean>
+
+	<!-- 拦截器方式配置事物 -->
+	<tx:advice id="transactionAdvice_dynamic" transaction-manager="txManager_dynamic">
+		<tx:attributes>
+			<tx:method name="add*" />
+			<tx:method name="order*" />
+			<tx:method name="save*" />
+			<tx:method name="update*" propagation="REQUIRED" />
+			<tx:method name="modify*" />
+			<tx:method name="edit*" />
+			<tx:method name="delete*" />
+			<tx:method name="insert*" propagation="REQUIRED" rollback-for="java.lang.RuntimeException"/>
+			<tx:method name="remove*" />
+			<tx:method name="repair" />
+			<tx:method name="deleteAndRepair" />
+
+			<tx:method name="get*" propagation="SUPPORTS" />
+			<tx:method name="find*" propagation="SUPPORTS" />
+			<tx:method name="load*" propagation="SUPPORTS" />
+			<tx:method name="search*" propagation="SUPPORTS" />
+			<tx:method name="datagrid*" propagation="SUPPORTS"  />
+
+			<tx:method name="*" propagation="SUPPORTS" />
+		</tx:attributes>
+	</tx:advice>
+	<aop:config>
+		<aop:pointcut id="transactionPointcut_dynamic" expression="execution(* com.ztkj.test.*.service.impl.*Impl.*(..))" />
+		<aop:advisor pointcut-ref="transactionPointcut_dynamic" advice-ref="transactionAdvice_dynamic" />
+	</aop:config>
+
+</beans>
